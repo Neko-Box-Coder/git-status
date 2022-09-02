@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "gitStatus",
+    "Description": "",
+    "Tags": [],
+    "Website": "https://gitlab.com/taconi/micro-git-status",
+    "Versions": [
+      {
+        "Version": "0.0.1",
+        "Url": "https://gitlab.com/taconi/micro-git-status/-/archive/v0.0.1/micro-git-status-v0.0.1.zip",
+        "Require": {
+          "micro": ">=2.0.11"
+        }
+      }
+    ]
+  }
+]

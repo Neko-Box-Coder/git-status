@@ -157,4 +157,6 @@ function init()
     config.RegisterCommonOption("gitStatus", "iconBranchNoOK", "✗")
 
     micro.SetStatusInfoFn("gitStatus.info")
+
+    config.AddRuntimeFile("gitStatus", config.RTHelp, "help.md")
 end

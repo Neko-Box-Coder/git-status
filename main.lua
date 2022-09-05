@@ -1,16 +1,17 @@
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 
 local micro = import("micro")
 local shell = import("micro/shell")
+local config = import("micro/config")
 local strings = import("strings")
-
 
 function branch()
     local branch, err = shell.ExecCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
     if err ~= nil then
-        return "*"
+        return config.GetGlobalOption("gitStatus.iconNoGit")
     end
-    return (" %s"):format(branch:gsub("%s+", ""))
+
+    return ("%s %s"):format(config.GetGlobalOption("gitStatus.iconBranch"), branch:gsub("%s+", ""))
 end
 
 function conflit()
@@ -21,7 +22,7 @@ function conflit()
 
     res = strings.Split(strings.TrimSpace(res), "\n")
     if #res ~= 0 and res[1] ~= "" then
-        return ("  :%s"):format(#res)
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconConflit"), #res)
     end
     return ""
 end
@@ -33,7 +34,7 @@ function behind()
     end
     count = strings.Split(strings.TrimSpace(res), "")[1]
     if count ~= "0" then
-        return (" ↓%s"):format(count)
+        return (" %s%s"):format(config.GetGlobalOption("gitStatus.iconBehind"), count)
     end
 
     return ""
@@ -47,7 +48,7 @@ function ahead()
 
     count = strings.Split(strings.TrimSpace(res), "")[3]
     if count ~= "0" then
-        return (" ↑%s"):format(count)
+        return (" %s%s"):format(config.GetGlobalOption("gitStatus.iconAhead"), count)
     end
 
     return ""
@@ -81,7 +82,7 @@ function stage()
     local _, count = string.gsub(result, "A", "*")
 
     if count ~= nil and count ~= 0 then
-        return (" S:%s"):format(tostring(count))
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconStage"), tostring(count))
     end
 
     return ""
@@ -95,7 +96,7 @@ function modified()
 
     local _, count = string.gsub(result, "M", "*")
     if count ~= nil and count ~= 0 then
-        return (" U:%s"):format(tostring(count))
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconModified"), tostring(count))
     end
 
     return ""
@@ -112,7 +113,7 @@ function unstage()
     count = math.floor(count / 2)
 
     if count ~= nil and count ~= 0 then
-        return (" ?:%s"):format(tostring(count))
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconUnstage"), tostring(count))
     end
 
     return ""
@@ -120,10 +121,10 @@ end
 
 function symbol(branch, stage, modified, unstage)
     local symbol = ""
-    if branch ~= "*" then
-        symbol = " ✓"
+    if branch ~= config.GetGlobalOption("gitStatus.iconNoGit") then
+        symbol = " " .. config.GetGlobalOption("gitStatus.iconBranchOK")
         if stage ~= "" or modified ~= "" or unstage ~= "" then
-            symbol = " ✗"
+          symbol = " " .. config.GetGlobalOption("gitStatus.iconBranchNoOK")
         end
     end
     return symbol
@@ -139,9 +140,21 @@ function info(buf)
     local modified = modified()
     local unstage = unstage()
 
-    return branch..conflit..ahead..behind..stash..stage..modified..unstage..symbol(branch, stage, modified, unstage)
+    return branch .. conflit .. ahead .. behind ..
+        stash .. stage .. modified .. unstage .. symbol(branch, stage, modified, unstage)
 end
 
 function init()
+    config.RegisterCommonOption("gitStatus", "iconBranch", "")
+    config.RegisterCommonOption("gitStatus", "iconNoGit", "*")
+    config.RegisterCommonOption("gitStatus", "iconConflit", "")
+    config.RegisterCommonOption("gitStatus", "iconBehind", "↓")
+    config.RegisterCommonOption("gitStatus", "iconAhead", "↑")
+    config.RegisterCommonOption("gitStatus", "iconStage", "S")
+    config.RegisterCommonOption("gitStatus", "iconModified", "U")
+    config.RegisterCommonOption("gitStatus", "iconUnstage", "?")
+    config.RegisterCommonOption("gitStatus", "iconBranchOK", "✓")
+    config.RegisterCommonOption("gitStatus", "iconBranchNoOK", "✗")
+
     micro.SetStatusInfoFn("gitStatus.info")
 end

@@ -1,8 +1,8 @@
 [
   {
     "Name": "gitStatus",
-    "Description": "",
-    "Tags": [],
+    "Description": "Information about git in status bar.",
+    "Tags": ["git", "status"],
     "Website": "https://gitlab.com/taconi/micro-git-status",
     "Versions": [
       {

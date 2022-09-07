@@ -79,10 +79,10 @@ function stage()
         return ""
     end
 
-    local _, count = string.gsub(result, "A", "*")
+    local _, count = string.gsub(result, "A%s", "")
 
     if count ~= nil and count ~= 0 then
-        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconStage"), tostring(count))
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconStage"), count)
     end
 
     return ""
@@ -94,9 +94,9 @@ function modified()
         return ""
     end
 
-    local _, count = string.gsub(result, "M", "*")
+    local _, count = string.gsub(result, "M%s", "")
     if count ~= nil and count ~= 0 then
-        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconModified"), tostring(count))
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconModified"), count)
     end
 
     return ""
@@ -109,11 +109,10 @@ function unstage()
         return ""
     end
 
-    local _, count = string.gsub(result, "?\\?", "*")
-    count = math.floor(count / 2)
+    local _, count = string.gsub(result, "?%s", "")
 
     if count ~= nil and count ~= 0 then
-        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconUnstage"), tostring(count))
+        return (" %s:%s"):format(config.GetGlobalOption("gitStatus.iconUnstage"), count)
     end
 
     return ""

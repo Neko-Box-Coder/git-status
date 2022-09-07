@@ -6,6 +6,13 @@
     "Website": "https://gitlab.com/taconi/micro-git-status",
     "Versions": [
       {
+        "Version": "0.1.0",
+        "Url": "https://gitlab.com/taconi/micro-git-status/-/archive/v0.1.0/micro-git-status-v0.1.0.zip",
+        "Require": {
+          "micro": ">=2.0.11"
+        }
+      },
+      {
         "Version": "0.0.3",
         "Url": "https://gitlab.com/taconi/micro-git-status/-/archive/v0.0.3/micro-git-status-v0.0.3.zip",
         "Require": {

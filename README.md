@@ -9,7 +9,7 @@ Information about git in status bar.
 Add this repo as a **pluginrepos** option in the **~/.config/micro/settings.json** file (it is necessary to restart the micro after this change):
 ```json
   "pluginrepos": [
-    "https://gitlab.com/taconi/micro-git-status/-/raw/main/repo.json"
+    "https://codeberg.org/micro-plugins/git-status/raw/branch/main/repo.json"
 ]
 ```
 

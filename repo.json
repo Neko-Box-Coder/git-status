@@ -1,45 +1,48 @@
 [
-  {
-    "Name": "gitStatus",
-    "Description": "Information about git in status bar.",
-    "Tags": ["git", "status"],
-    "Website": "https://codeberg.org/micro-plugins/git-status",
-    "Versions": [
-      {
-        "Version": "0.1.1",
-        "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.1.1.zip",
-        "Require": {
-          "micro": ">=2.0.12"
-        }
-      },
-      {
-        "Version": "0.1.0",
-        "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.1.0.zip",
-        "Require": {
-          "micro": ">=2.0.11"
-        }
-      },
-      {
-        "Version": "0.0.3",
-        "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.0.3.zip",
-        "Require": {
-          "micro": ">=2.0.11"
-        }
-      },
-      {
-        "Version": "0.0.2",
-        "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.0.2.zip",
-        "Require": {
-          "micro": ">=2.0.11"
-        }
-      },
-      {
-        "Version": "0.0.1",
-        "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.0.1.zip",
-        "Require": {
-          "micro": ">=2.0.11"
-        }
-      }
-    ]
-  }
+    {
+        "Description": "Information about git in status bar.",
+        "Name": "gitStatus",
+        "Tags": [
+            "git",
+            "status"
+        ],
+        "Versions": [
+            {
+                "Require": {
+                    "micro": ">=2.0.12"
+                },
+                "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.1.1.zip",
+                "Version": "0.1.1"
+            },
+            {
+                "Require": {
+                    "micro": ">=2.0.11"
+                },
+                "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.1.0.zip",
+                "Version": "0.1.0"
+            },
+            {
+                "Require": {
+                    "micro": ">=2.0.11"
+                },
+                "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.0.3.zip",
+                "Version": "0.0.3"
+            },
+            {
+                "Require": {
+                    "micro": ">=2.0.11"
+                },
+                "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.0.2.zip",
+                "Version": "0.0.2"
+            },
+            {
+                "Require": {
+                    "micro": ">=2.0.11"
+                },
+                "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.0.1.zip",
+                "Version": "0.0.1"
+            }
+        ],
+        "Website": "https://codeberg.org/micro-plugins/git-status"
+    }
 ]

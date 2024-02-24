@@ -28,5 +28,3 @@ You can set the following options:
 | `gitStatus.iconUnstage`    | icon when there are files outside staging                     | `?`
 | `gitStatus.iconBranchOK`   | icon when everything is ok in the repo                        | `✓`
 | `gitStatus.iconBranchNoOK` | icon when there is status                                     | `✗`
-
-icon when repository is behind in remote commits

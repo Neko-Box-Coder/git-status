@@ -157,5 +157,5 @@ function init()
 
     micro.SetStatusInfoFn("gitStatus.info")
 
-    config.AddRuntimeFile("gitStatus", config.RTHelp, "help.md")
+    config.AddRuntimeFile("gitStatus", config.RTHelp, "help/gitStatus.md")
 end

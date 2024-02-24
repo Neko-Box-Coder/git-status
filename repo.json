@@ -12,6 +12,13 @@
                 "Require": {
                     "micro": ">=2.0.12"
                 },
+                "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.1.2.zip",
+                "Version": "0.1.2"
+            },
+            {
+                "Require": {
+                    "micro": ">=2.0.12"
+                },
                 "Url": "https://codeberg.org/micro-plugins/git-status/archive/v0.1.1.zip",
                 "Version": "0.1.1"
             },

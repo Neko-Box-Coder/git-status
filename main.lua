@@ -68,40 +68,52 @@ function stash()
   return ''
 end
 
-function stage()
+function getStagedModifiedCount()
   local result, err = shell.ExecCommand('git', 'status', '--porcelain', '--branch')
 
   if err ~= nil then
-    return ''
+    return 0, 0
   end
 
   if result == nil then
-    return ''
+    return 0, 0
   end
+  
+  local stagedCount = 0
+  local modifiedCount = 0
+  for line in result:gmatch("[^\r\n]+") do
+    local _, curAddCount = string.gsub(line, '^A  .*$', '')
+    if curAddCount == nil then curAddCount = 0 end
+    local _, curStagedCount = string.gsub(line, '^M  .*$', '')
+    if curStagedCount == nil then curStagedCount = 0 end
+    local _, curModCount = string.gsub(line, '^ M .*$', '')
+    if curModCount == nil then curModCount = 0 end
+    stagedCount = stagedCount + curAddCount + curStagedCount
+    modifiedCount = modifiedCount + curModCount
+  end
+  
+  return stagedCount, modifiedCount
+end
 
-  local _, count = string.gsub(result, 'A%s', '')
-
-  if count ~= nil and count ~= 0 then
-    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconStage'), count)
+function stage()
+  local staged, _ = getStagedModifiedCount()
+  if staged ~= 0 then
+    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconStage'), staged)
   end
 
   return ''
 end
 
 function modified()
-  local result, err = shell.ExecCommand('git', 'status', '--porcelain', '--branch')
-  if err ~= nil or result == nil then
-    return ''
-  end
-
-  local _, count = string.gsub(result, 'M%s', '')
-  if count ~= nil and count ~= 0 then
-    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconModified'), count)
+  local _, mod = getStagedModifiedCount()
+  if mod ~= 0 then
+    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconModified'), mod)
   end
 
   return ''
 end
 
+-- This is actually just files that are untracked
 function unstage()
   local result, err = shell.ExecCommand('git', 'status', '--porcelain', '--branch')
 
@@ -112,7 +124,15 @@ function unstage()
   local _, count = string.gsub(result, '?%s', '')
 
   if count ~= nil and count ~= 0 then
-    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUnstage'), count)
+    if config.GetGlobalOption('gitStatus.iconUnstage') ~= config.GetGlobalOption('gitStatus.iconUntracked') then
+      if config.GetGlobalOption('gitStatus.iconUnstage') == '?' then
+        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), count)
+      else
+        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), count)
+      end
+    else
+      return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUnstage'), count)
+    end
   end
 
   return ''
@@ -157,8 +177,9 @@ function init()
   config.RegisterCommonOption('gitStatus', 'iconBehind', '↓')
   config.RegisterCommonOption('gitStatus', 'iconAhead', '↑')
   config.RegisterCommonOption('gitStatus', 'iconStage', 'S')
-  config.RegisterCommonOption('gitStatus', 'iconModified', 'U')
+  config.RegisterCommonOption('gitStatus', 'iconModified', 'M')
   config.RegisterCommonOption('gitStatus', 'iconUnstage', '?')
+  config.RegisterCommonOption('gitStatus', 'iconUntracked', '?')
   config.RegisterCommonOption('gitStatus', 'iconBranchOK', '✓')
   config.RegisterCommonOption('gitStatus', 'iconBranchNoOK', '✗')
 

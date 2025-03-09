@@ -24,7 +24,7 @@ You can set the following options:
 | `gitStatus.iconBehind`     | icon when repository is behind in remote commits              | `↓`
 | `gitStatus.iconAhead`      | icon when repository is ahead in remote commits               | `↑`
 | `gitStatus.iconStage`      | icon when there are files in staging                          | `S`
-| `gitStatus.iconModified`   | icon of when there are changes to the files that git observes | `U`
-| `gitStatus.iconUnstage`    | icon when there are files outside staging                     | `?`
+| `gitStatus.iconModified`   | icon of when there are changes to the files that git observes | `M`
+| `gitStatus.iconUntracked`  | icon when there are files outside git tracking                | `?`
 | `gitStatus.iconBranchOK`   | icon when everything is ok in the repo                        | `✓`
 | `gitStatus.iconBranchNoOK` | icon when there is status                                     | `✗`

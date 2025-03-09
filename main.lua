@@ -1,4 +1,4 @@
-VERSION = '0.1.2'
+VERSION = '0.1.3'
 
 local micro = import('micro')
 local shell = import('micro/shell')
@@ -94,7 +94,7 @@ function getStagedModifiedCount()
     if curAddCount == nil then curAddCount = 0 end
     local _, curStagedCount = string.gsub(line, '^M  .*$', '')
     if curStagedCount == nil then curStagedCount = 0 end
-    local _, curModCount = string.gsub(line, '^ M .*$', '')
+    local _, curModCount = string.gsub(line, '^.M .*$', '')
     if curModCount == nil then curModCount = 0 end
     stagedCount = stagedCount + curAddCount + curStagedCount
     modifiedCount = modifiedCount + curModCount

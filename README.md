@@ -52,7 +52,7 @@ You can set the following options:
 | -------------------------- | ------------------------------------------------------------- | -------
 | `gitStatus.iconBranch`     | branch icon                                                   | ``
 | `gitStatus.iconNoGit`      | icon when you don't have git                                  | `*`
-| `gitStatus.iconConflit`    | icon when there is conflict                                   | ``
+| `gitStatus.iconConflict`   | icon when there is conflict                                   | ``
 | `gitStatus.iconBehind`     | icon when repository is behind in remote commits              | `↓`
 | `gitStatus.iconAhead`      | icon when repository is ahead in remote commits               | `↑`
 | `gitStatus.iconStage`      | icon when there are files in staging                          | `S`

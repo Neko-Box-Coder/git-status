@@ -14,7 +14,7 @@ function branch()
   return ('%s %s'):format(config.GetGlobalOption('gitStatus.iconBranch'), branch:gsub('%s+', ''))
 end
 
-function conflit()
+function conflict()
   local res, err = shell.ExecCommand('git', 'diff', '--name-only', '--diff-filter=U')
   if err ~= nil or res == nil then
     return ''
@@ -22,7 +22,15 @@ function conflit()
 
   res = strings.Split(strings.TrimSpace(res), '\n')
   if #res ~= 0 and res[1] ~= '' then
-    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflit'), #res)
+    if config.GetGlobalOption('gitStatus.iconConflict') ~= config.GetGlobalOption('gitStatus.gitStatus.iconConflit') then
+      if config.GetGlobalOption('gitStatus.iconConflict') ~= '' then
+        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflict'), #res)
+      else
+        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflit'), #res)
+      end
+    else
+      return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflict'), #res)
+    end
   end
   return ''
 end
@@ -151,7 +159,7 @@ end
 
 function info(buf)
   local branch = branch()
-  local conflit = conflit()
+  local conflict = conflict()
   local behind = behind()
   local ahead = ahead()
   local stash = stash()
@@ -160,7 +168,7 @@ function info(buf)
   local unstage = unstage()
 
   return branch
-    .. conflit
+    .. conflict
     .. ahead
     .. behind
     .. stash
@@ -174,6 +182,7 @@ function init()
   config.RegisterCommonOption('gitStatus', 'iconBranch', '')
   config.RegisterCommonOption('gitStatus', 'iconNoGit', '*')
   config.RegisterCommonOption('gitStatus', 'iconConflit', '')
+  config.RegisterCommonOption('gitStatus', 'iconConflict', '')
   config.RegisterCommonOption('gitStatus', 'iconBehind', '↓')
   config.RegisterCommonOption('gitStatus', 'iconAhead', '↑')
   config.RegisterCommonOption('gitStatus', 'iconStage', 'S')

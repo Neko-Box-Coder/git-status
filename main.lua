@@ -1,9 +1,25 @@
-VERSION = '0.1.3'
+VERSION = '0.1.4'
 
 local micro = import('micro')
 local shell = import('micro/shell')
 local config = import('micro/config')
 local strings = import('strings')
+
+local gitStatusFirstRun = true
+local lastGitStatusRunTime = nil
+local lastGitStatusStr = ""
+local currentGitStatus = {
+    populatedCounter = 0,
+    branch = "",
+    conflict = "",
+    behind = "",
+    ahead = "",
+    stash = "",
+    stage = "",
+    modified = "",
+    unstage = ""
+}
+
 
 function branch()
   local branch, err = shell.ExecCommand('git', 'rev-parse', '--abbrev-ref', 'HEAD')
@@ -157,25 +173,81 @@ function symbol(branch, stage, modified, unstage)
   return symbol
 end
 
-function info(buf)
-  local branch = branch()
-  local conflict = conflict()
-  local behind = behind()
-  local ahead = ahead()
-  local stash = stash()
-  local stage = stage()
-  local modified = modified()
-  local unstage = unstage()
+function gitStatusToStr()
+  return 
+    currentGitStatus.branch .. 
+    currentGitStatus.conflict .. 
+    currentGitStatus.ahead .. 
+    currentGitStatus.behind .. 
+    currentGitStatus.stash .. 
+    currentGitStatus.stage .. 
+    currentGitStatus.modified .. 
+    currentGitStatus.unstage .. 
+    symbol( currentGitStatus.branch, 
+            currentGitStatus.stage, 
+            currentGitStatus.modified, 
+            currentGitStatus.unstage)
+end
 
-  return branch
-    .. conflict
-    .. ahead
-    .. behind
-    .. stash
-    .. stage
-    .. modified
-    .. unstage
-    .. symbol(branch, stage, modified, unstage)
+function info(buf)
+  if lastGitStatusRunTime ~= nil then 
+    local lastRunTimeDiff = os.difftime(os.time(), lastGitStatusRunTime)
+    if lastRunTimeDiff < config.GetGlobalOption('gitStatus.commandInterval') then
+      return lastGitStatusStr
+    end
+  end
+  
+  if gitStatusFirstRun then
+    gitStatusFirstRun = false
+    currentGitStatus.branch = branch()
+    currentGitStatus.conflict = conflict()
+    currentGitStatus.ahead = behind()
+    currentGitStatus.behind = ahead()
+    currentGitStatus.stash = stash()
+    currentGitStatus.stage = stage()
+    currentGitStatus.modified = modified()
+    currentGitStatus.unstage = unstage()
+    currentGitStatus.populatedCounter = 0
+    lastGitStatusStr = gitStatusToStr()
+    -- micro.InfoBar():Message("gitStatusFirstRun")
+    return lastGitStatusStr;
+  end
+  
+  if currentGitStatus.populatedCounter == 0 then
+    currentGitStatus.branch = branch()
+    -- micro.InfoBar():Message("currentGitStatus.branch = branch()")
+  elseif currentGitStatus.populatedCounter == 1 then
+    currentGitStatus.conflict = conflict()
+    -- micro.InfoBar():Message("currentGitStatus.conflict = conflict()")
+  elseif currentGitStatus.populatedCounter == 2 then 
+    currentGitStatus.behind = behind()
+    -- micro.InfoBar():Message("currentGitStatus.behind = behind()")
+  elseif currentGitStatus.populatedCounter == 3 then 
+    currentGitStatus.ahead = ahead()
+    -- micro.InfoBar():Message("currentGitStatus.ahead = ahead()")
+  elseif currentGitStatus.populatedCounter == 4 then 
+    currentGitStatus.stash = stash()
+    -- micro.InfoBar():Message("currentGitStatus.stash = stash()")
+  elseif currentGitStatus.populatedCounter == 5 then 
+    currentGitStatus.stage = stage()
+    -- micro.InfoBar():Message("currentGitStatus.stage = stage()")
+  elseif currentGitStatus.populatedCounter == 6 then 
+    currentGitStatus.modified = modified()
+    -- micro.InfoBar():Message("currentGitStatus.modified = modified()")
+  else
+    currentGitStatus.unstage = unstage()
+    -- micro.InfoBar():Message("currentGitStatus.unstage = unstage()")
+  end
+  
+  currentGitStatus.populatedCounter = currentGitStatus.populatedCounter + 1
+  
+  if currentGitStatus.populatedCounter == 8 then
+    lastGitStatusStr = gitStatusToStr()
+    currentGitStatus.populatedCounter = 0
+  end
+  
+  lastGitStatusRunTime = os.time()
+  return lastGitStatusStr
 end
 
 function init()
@@ -191,6 +263,8 @@ function init()
   config.RegisterCommonOption('gitStatus', 'iconUntracked', '?')
   config.RegisterCommonOption('gitStatus', 'iconBranchOK', '✓')
   config.RegisterCommonOption('gitStatus', 'iconBranchNoOK', '✗')
+  
+  config.RegisterCommonOption('gitStatus', 'commandInterval', 1)
 
   micro.SetStatusInfoFn('gitStatus.info')
 

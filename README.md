@@ -60,3 +60,4 @@ You can set the following options:
 | `gitStatus.iconUntracked`  | icon when there are files outside git tracking                | `?`
 | `gitStatus.iconBranchOK`   | icon when everything is ok in the repo                        | `✓`
 | `gitStatus.iconBranchNoOK` | icon when there is status                                     | `✗`
+| `gitStatus.commandInterval`| How often in seconds to run a git command                     | 1

@@ -7,12 +7,13 @@ local strings = import('strings')
 
 local lastGitStatusRunTime = nil
 local lastGitStatusStr = ""
-local minGitStatusTick = 50
+local minGitStatusTick = 10
 local currentBufCount = 1
 local lastGitStatusTick = -minGitStatusTick
 local gitStatusTick = 0
 local currentGitStatus = {
     populatedCounter = 0,
+    
     branch = "",
     conflict = "",
     behind = "",
@@ -152,7 +153,7 @@ function unstage()
 
   if count ~= nil and count ~= 0 then
     if config.GetGlobalOption('gitStatus.iconUnstage') ~= config.GetGlobalOption('gitStatus.iconUntracked') then
-      if config.GetGlobalOption('gitStatus.iconUnstage') == '?' then
+      if config.GetGlobalOption('gitStatus.iconUnstage') == 'U' then
         return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), count)
       else
         return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), count)
@@ -216,7 +217,7 @@ end
 
 function fulltick(doLog)
   -- if doLog then
-    -- micro.InfoBar():Message("fulltick(): ", gitStatusTick)
+  --   micro.InfoBar():Message("fulltick(): ", gitStatusTick)
   -- end
   gitStatusTick = gitStatusTick + 1
   lastGitStatusTick = gitStatusTick
@@ -257,33 +258,20 @@ function info(buf)
   
   if currentGitStatus.populatedCounter == 0 then
     currentGitStatus.branch = branch()
-    -- micro.InfoBar():Message("currentGitStatus.branch = branch()")
-  elseif currentGitStatus.populatedCounter == 1 then
     currentGitStatus.conflict = conflict()
-    -- micro.InfoBar():Message("currentGitStatus.conflict = conflict()")
-  elseif currentGitStatus.populatedCounter == 2 then 
     currentGitStatus.behind = behind()
-    -- micro.InfoBar():Message("currentGitStatus.behind = behind()")
-  elseif currentGitStatus.populatedCounter == 3 then 
+  elseif currentGitStatus.populatedCounter == 1 then
     currentGitStatus.ahead = ahead()
-    -- micro.InfoBar():Message("currentGitStatus.ahead = ahead()")
-  elseif currentGitStatus.populatedCounter == 4 then 
     currentGitStatus.stash = stash()
-    -- micro.InfoBar():Message("currentGitStatus.stash = stash()")
-  elseif currentGitStatus.populatedCounter == 5 then 
     currentGitStatus.stage = stage()
-    -- micro.InfoBar():Message("currentGitStatus.stage = stage()")
-  elseif currentGitStatus.populatedCounter == 6 then 
-    currentGitStatus.modified = modified()
-    -- micro.InfoBar():Message("currentGitStatus.modified = modified()")
   else
+    currentGitStatus.modified = modified()
     currentGitStatus.unstage = unstage()
-    -- micro.InfoBar():Message("currentGitStatus.unstage = unstage()")
   end
   
   currentGitStatus.populatedCounter = currentGitStatus.populatedCounter + 1
   
-  if currentGitStatus.populatedCounter == 8 then
+  if currentGitStatus.populatedCounter == 3 then
     lastGitStatusStr = gitStatusToStr()
     currentGitStatus.populatedCounter = 0
     fulltick(false)
@@ -297,15 +285,15 @@ end
 
 function init()
   config.RegisterCommonOption('gitStatus', 'iconBranch', '')
-  config.RegisterCommonOption('gitStatus', 'iconNoGit', '*')
+  config.RegisterCommonOption('gitStatus', 'iconNoGit', '?')
   config.RegisterCommonOption('gitStatus', 'iconConflit', '')
   config.RegisterCommonOption('gitStatus', 'iconConflict', '')
   config.RegisterCommonOption('gitStatus', 'iconBehind', '↓')
   config.RegisterCommonOption('gitStatus', 'iconAhead', '↑')
   config.RegisterCommonOption('gitStatus', 'iconStage', 'S')
   config.RegisterCommonOption('gitStatus', 'iconModified', 'M')
-  config.RegisterCommonOption('gitStatus', 'iconUnstage', '?')
-  config.RegisterCommonOption('gitStatus', 'iconUntracked', '?')
+  config.RegisterCommonOption('gitStatus', 'iconUnstage', 'U')
+  config.RegisterCommonOption('gitStatus', 'iconUntracked', 'U')
   config.RegisterCommonOption('gitStatus', 'iconBranchOK', '✓')
   config.RegisterCommonOption('gitStatus', 'iconBranchNoOK', '✗')
   

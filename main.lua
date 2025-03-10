@@ -5,9 +5,12 @@ local shell = import('micro/shell')
 local config = import('micro/config')
 local strings = import('strings')
 
-local gitStatusFirstRun = true
 local lastGitStatusRunTime = nil
 local lastGitStatusStr = ""
+local minGitStatusTick = 50
+local currentBufCount = 1
+local lastGitStatusTick = -minGitStatusTick
+local gitStatusTick = 0
 local currentGitStatus = {
     populatedCounter = 0,
     branch = "",
@@ -189,16 +192,54 @@ function gitStatusToStr()
             currentGitStatus.unstage)
 end
 
+function updateCurrentBufferCount()
+  currentBufCount = 0
+  local bp = micro.CurPane()
+  if bp == nil then
+    currentBufCount = 1
+    return
+  end
+  
+  currentBufCount = #bp:Tab().Panes
+  
+  if currentBufCount <= 0 then
+    currentBufCount = 1
+  end
+end
+
+function halftick()
+  -- micro.InfoBar():Message("halftick(): ", gitStatusTick)
+  gitStatusTick = gitStatusTick + 1
+  lastGitStatusTick = gitStatusTick
+  updateCurrentBufferCount()
+end
+
+function fulltick(doLog)
+  -- if doLog then
+    -- micro.InfoBar():Message("fulltick(): ", gitStatusTick)
+  -- end
+  gitStatusTick = gitStatusTick + 1
+  lastGitStatusTick = gitStatusTick
+  lastGitStatusRunTime = os.time()
+  updateCurrentBufferCount()
+end
+
 function info(buf)
+  if gitStatusTick - lastGitStatusTick < minGitStatusTick * currentBufCount then
+    gitStatusTick = gitStatusTick + 1
+    return lastGitStatusStr
+  end
+  
   if lastGitStatusRunTime ~= nil then 
     local lastRunTimeDiff = os.difftime(os.time(), lastGitStatusRunTime)
+    -- micro.InfoBar():Message("local lastRunTimeDiff = os.difftime(os.time(), lastGitStatusRunTime)")
     if lastRunTimeDiff < config.GetGlobalOption('gitStatus.commandInterval') then
+      halftick()
       return lastGitStatusStr
     end
   end
   
-  if gitStatusFirstRun then
-    gitStatusFirstRun = false
+  if gitStatusTick == 0 then
     currentGitStatus.branch = branch()
     currentGitStatus.conflict = conflict()
     currentGitStatus.ahead = behind()
@@ -210,7 +251,8 @@ function info(buf)
     currentGitStatus.populatedCounter = 0
     lastGitStatusStr = gitStatusToStr()
     -- micro.InfoBar():Message("gitStatusFirstRun")
-    return lastGitStatusStr;
+    fulltick(true)
+    return lastGitStatusStr
   end
   
   if currentGitStatus.populatedCounter == 0 then
@@ -244,9 +286,12 @@ function info(buf)
   if currentGitStatus.populatedCounter == 8 then
     lastGitStatusStr = gitStatusToStr()
     currentGitStatus.populatedCounter = 0
+    fulltick(false)
+    -- micro.InfoBar():Message("lastGitStatusStr = gitStatusToStr()")
+  else
+    fulltick(true)
   end
   
-  lastGitStatusRunTime = os.time()
   return lastGitStatusStr
 end
 

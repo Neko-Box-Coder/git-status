@@ -4,6 +4,7 @@ local micro = import('micro')
 local shell = import('micro/shell')
 local config = import('micro/config')
 local strings = import('strings')
+local runtime = import("runtime")
 
 local lastGitStatusRunTime = nil
 local lastGitStatusStr = ""
@@ -31,19 +32,46 @@ local currentGitStatus = {
     isStagedModifiedUntrackedDone = false
 }
 
-
-function branchDone(output)
-  if err == nil then
-    currentGitStatus.branch = ('%s %s'):format( config.GetGlobalOption('gitStatus.iconBranch'), 
-                                                output:gsub('%s+', ''))
-    currentGitStatus.isBranchDone = true
+function getOS()
+  if runtime.GOOS == "windows" then
+    return "Windows"
   else
-    currentGitStatus.branch = "error: " .. err:Error()
+    return "Unix"
   end
 end
 
+function runCrossPlatformBackgroundCommand(cmd, exitCallback)
+  local cmdSplits = {}
+  local currentOS = getOS()
+  if currentOS == "Unix" then
+    -- table.insert(cmdSplits, 'sh')
+    table.insert(cmdSplits, '-c')
+    table.insert(cmdSplits, cmd)
+    shell.JobSpawn("sh", cmdSplits, nil, nil, exitCallback)
+  else
+    -- table.insert(cmdSplits, 'cmd')
+    table.insert(cmdSplits, '/s')
+    table.insert(cmdSplits, '/v')
+    table.insert(cmdSplits, '/c')
+    table.insert(cmdSplits, cmd)
+    shell.JobSpawn("cmd", cmdSplits, nil, nil, exitCallback)
+    -- shell.JobSpawn("git rev-parse --abbrev-ref HEAD", nil, nil, branchDone)
+  end
+end
+
+function branchDone(output)
+  micro.Log("output:", output)
+  -- if err == nil then
+    currentGitStatus.branch = ('%s %s'):format( config.GetGlobalOption('gitStatus.iconBranch'), 
+                                                output:gsub('%s+', ''))
+    currentGitStatus.isBranchDone = true
+  -- else
+    -- currentGitStatus.branch = "error: " .. err:Error()
+  -- end
+end
+
 function startBranch()
-  shell.JobStart("git rev-parse --abbrev-ref HEAD", nil, nil, branchDone)
+  runCrossPlatformBackgroundCommand("git rev-parse --abbrev-ref HEAD", branchDone)
 end
 
 function conflictDone(output)
@@ -71,27 +99,35 @@ function conflictDone(output)
 end
 
 function startConflict()
-  shell.JobStart('git diff --name-only --diff-filter=U', nil, nil, conflictDone)
+  runCrossPlatformBackgroundCommand('git diff --name-only --diff-filter=U', conflictDone)
 end
 
 function behindOrAheadDone(output)
-  behindCount = strings.Split(strings.TrimSpace(output), '')[1]
-  aheadCount = strings.Split(strings.TrimSpace(output), '')[3]
+  -- micro.Log("output:", output)
+  local res = strings.Split(strings.TrimSpace(output), '')
   
-  if behindCount ~= nil and behindCount ~= '0' then
-    currentGitStatus.behindAhead = 
-      (' %s%s'):format(config.GetGlobalOption('gitStatus.iconBehind'), behindCount)
-  elseif aheadCount ~= nil and aheadCount ~= '0' then
-    currentGitStatus.behindAhead = 
-      (' %s%s'):format(config.GetGlobalOption('gitStatus.iconAhead'), aheadCount)
+  if res ~= nil and #res >= 3 and #res <= 5 then
+    behindCount = strings.Split(strings.TrimSpace(output), '')[1]
+    aheadCount = strings.Split(strings.TrimSpace(output), '')[3]
+    
+    if behindCount ~= nil and behindCount ~= '0' then
+      currentGitStatus.behindAhead = 
+        (' %s%s'):format(config.GetGlobalOption('gitStatus.iconBehind'), behindCount)
+    elseif aheadCount ~= nil and aheadCount ~= '0' then
+      currentGitStatus.behindAhead = 
+        (' %s%s'):format(config.GetGlobalOption('gitStatus.iconAhead'), aheadCount)
+    else
+      currentGitStatus.behindAhead = ''
+    end
   else
     currentGitStatus.behindAhead = ''
   end
+  
   currentGitStatus.isBehindAheadDone = true
 end
 
 function startBehindOrAhead()
-  shell.JobStart('git rev-list --left-right --count @{upstream}...HEAD', nil, nil, behindOrAheadDone)
+  runCrossPlatformBackgroundCommand('git rev-list --left-right --count @{upstream}...HEAD', behindOrAheadDone)
 end
 
 function stashDone(output)
@@ -105,7 +141,7 @@ function stashDone(output)
 end
 
 function startStash()
-  shell.JobStart('git stash list', nil, nil, stashDone)
+  runCrossPlatformBackgroundCommand('git stash list', stashDone)
 end
 
 function getStagedModifiedUntrackCount(output)
@@ -159,7 +195,7 @@ function stagedModifiedUntrackedDone(output)
 end
 
 function startStagedModifiedUntracked()
-  shell.JobStart('git status --porcelain --branch', nil, nil, stagedModifiedUntrackedDone)
+  runCrossPlatformBackgroundCommand('git status --porcelain --branch', stagedModifiedUntrackedDone)
 end
 
 function symbol(branch, stageModifiedUntracked)

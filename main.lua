@@ -11,186 +11,177 @@ local minGitStatusTick = 10
 local currentBufCount = 1
 local lastGitStatusTick = -minGitStatusTick
 local gitStatusTick = 0
+
 local currentGitStatus = {
     populatedCounter = 0,
     
     branch = "",
+    isBranchDone = false,
+    
     conflict = "",
-    behind = "",
-    ahead = "",
+    isConflictDone = false,
+    
+    behindAhead = "",
+    isBehindAheadDone = false,
+    
     stash = "",
-    stage = "",
-    modified = "",
-    unstage = ""
+    isStashDone = false,
+    
+    stagedModifiedUntracked = "",
+    isStagedModifiedUntrackedDone = false
 }
 
 
-function branch()
-  local branch, err = shell.ExecCommand('git', 'rev-parse', '--abbrev-ref', 'HEAD')
-  if err ~= nil then
-    return config.GetGlobalOption('gitStatus.iconNoGit')
+function branchDone(output)
+  if err == nil then
+    currentGitStatus.branch = ('%s %s'):format( config.GetGlobalOption('gitStatus.iconBranch'), 
+                                                output:gsub('%s+', ''))
+    currentGitStatus.isBranchDone = true
+  else
+    currentGitStatus.branch = "error: " .. err:Error()
   end
-
-  return ('%s %s'):format(config.GetGlobalOption('gitStatus.iconBranch'), branch:gsub('%s+', ''))
 end
 
-function conflict()
-  local res, err = shell.ExecCommand('git', 'diff', '--name-only', '--diff-filter=U')
-  if err ~= nil or res == nil then
-    return ''
-  end
+function startBranch()
+  shell.JobStart("git rev-parse --abbrev-ref HEAD", nil, nil, branchDone)
+end
 
-  res = strings.Split(strings.TrimSpace(res), '\n')
+function conflictDone(output)
+  local res = strings.Split(strings.TrimSpace(output), '\n')
+  
   if #res ~= 0 and res[1] ~= '' then
-    if config.GetGlobalOption('gitStatus.iconConflict') ~= config.GetGlobalOption('gitStatus.gitStatus.iconConflit') then
+    if  config.GetGlobalOption('gitStatus.iconConflict') ~= 
+        config.GetGlobalOption('gitStatus.gitStatus.iconConflit') then
       if config.GetGlobalOption('gitStatus.iconConflict') ~= '' then
-        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflict'), #res)
+        currentGitStatus.conflict = 
+          (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflict'), #res)
       else
-        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflit'), #res)
+        currentGitStatus.conflict = 
+          (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflit'), #res)
       end
     else
-      return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflict'), #res)
+      currentGitStatus.conflict = 
+        (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconConflict'), #res)
     end
-  end
-  return ''
-end
-
-function behind()
-  local res, err = shell.ExecCommand('git', 'rev-list', '--left-right', '--count', '@{upstream}...HEAD')
-  if err ~= nil then
-    return ''
-  end
-  count = strings.Split(strings.TrimSpace(res), '')[1]
-  if count ~= '0' then
-    return (' %s%s'):format(config.GetGlobalOption('gitStatus.iconBehind'), count)
-  end
-
-  return ''
-end
-
-function ahead()
-  local res, err = shell.ExecCommand('git', 'rev-list', '--left-right', '--count', '@{upstream}...HEAD')
-  if err ~= nil then
-    return ''
-  end
-
-  count = strings.Split(strings.TrimSpace(res), '')[3]
-  if count ~= '0' then
-    return (' %s%s'):format(config.GetGlobalOption('gitStatus.iconAhead'), count)
-  end
-
-  return ''
-end
-
-function stash()
-  local res, err = shell.ExecCommand('git', 'stash', 'list')
-  if err ~= nil then
-    return ''
-  end
-
-  local _, count = res:gsub('@', '')
-  if count ~= nil and count ~= 0 then
-    return (' {%s}'):format(count)
-  end
-
-  return ''
-end
-
-function getStagedModifiedCount()
-  local result, err = shell.ExecCommand('git', 'status', '--porcelain', '--branch')
-
-  if err ~= nil then
-    return 0, 0
-  end
-
-  if result == nil then
-    return 0, 0
+  else
+    currentGitStatus.conflict = ''
   end
   
+  currentGitStatus.isConflictDone = true
+end
+
+function startConflict()
+  shell.JobStart('git diff --name-only --diff-filter=U', nil, nil, conflictDone)
+end
+
+function behindOrAheadDone(output)
+  behindCount = strings.Split(strings.TrimSpace(output), '')[1]
+  aheadCount = strings.Split(strings.TrimSpace(output), '')[3]
+  
+  if behindCount ~= nil and behindCount ~= '0' then
+    currentGitStatus.behindAhead = 
+      (' %s%s'):format(config.GetGlobalOption('gitStatus.iconBehind'), behindCount)
+  elseif aheadCount ~= nil and aheadCount ~= '0' then
+    currentGitStatus.behindAhead = 
+      (' %s%s'):format(config.GetGlobalOption('gitStatus.iconAhead'), aheadCount)
+  else
+    currentGitStatus.behindAhead = ''
+  end
+  currentGitStatus.isBehindAheadDone = true
+end
+
+function startBehindOrAhead()
+  shell.JobStart('git rev-list --left-right --count @{upstream}...HEAD', nil, nil, behindOrAheadDone)
+end
+
+function stashDone(output)
+  local _, count = output:gsub('@', '')
+  if count ~= nil and count ~= 0 then
+    currentGitStatus.stash = (' {%s}'):format(count)
+  else
+    currentGitStatus.stash = ''
+  end
+  currentGitStatus.isStashDone = true
+end
+
+function startStash()
+  shell.JobStart('git stash list', nil, nil, stashDone)
+end
+
+function getStagedModifiedUntrackCount(output)
   local stagedCount = 0
   local modifiedCount = 0
-  for line in result:gmatch("[^\r\n]+") do
+  local untrackCount = 0
+  for line in output:gmatch("[^\r\n]+") do
     local _, curAddCount = string.gsub(line, '^A  .*$', '')
     if curAddCount == nil then curAddCount = 0 end
     local _, curStagedCount = string.gsub(line, '^M  .*$', '')
     if curStagedCount == nil then curStagedCount = 0 end
     local _, curModCount = string.gsub(line, '^.M .*$', '')
     if curModCount == nil then curModCount = 0 end
+    local _, curUntrackCount = string.gsub(output, '^?? .*$', '')
+    if curUntrackCount == nil then curUntrackCount = 0 end
+    
     stagedCount = stagedCount + curAddCount + curStagedCount
     modifiedCount = modifiedCount + curModCount
+    untrackCount = untrackCount + curUntrackCount
   end
   
-  return stagedCount, modifiedCount
+  return stagedCount, modifiedCount, untrackCount
 end
 
-function stage()
-  local staged, _ = getStagedModifiedCount()
+function stagedModifiedUntrackedDone(output)
+  local staged, mod, untracked = getStagedModifiedUntrackCount(output)
+  local returnStr = ''
+  
   if staged ~= 0 then
-    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconStage'), staged)
+    returnStr = returnStr .. (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconStage'), staged)
   end
-
-  return ''
-end
-
-function modified()
-  local _, mod = getStagedModifiedCount()
+  
   if mod ~= 0 then
-    return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconModified'), mod)
+    returnStr = returnStr .. (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconModified'), mod)
   end
 
-  return ''
-end
-
--- This is actually just files that are untracked
-function unstage()
-  local result, err = shell.ExecCommand('git', 'status', '--porcelain', '--branch')
-
-  if err ~= nil or result == nil then
-    return ''
-  end
-
-  local _, count = string.gsub(result, '?%s', '')
-
-  if count ~= nil and count ~= 0 then
+  if untracked ~= nil and untracked ~= 0 then
     if config.GetGlobalOption('gitStatus.iconUnstage') ~= config.GetGlobalOption('gitStatus.iconUntracked') then
       if config.GetGlobalOption('gitStatus.iconUnstage') == 'U' then
-        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), count)
+        returnStr = returnStr .. (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), untracked)
       else
-        return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), count)
+        returnStr = returnStr .. (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUntracked'), untracked)
       end
     else
-      return (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUnstage'), count)
+      returnStr = returnStr .. (' %s:%s'):format(config.GetGlobalOption('gitStatus.iconUnstage'), untracked)
     end
   end
-
-  return ''
+  
+  currentGitStatus.stagedModifiedUntracked = returnStr
+  currentGitStatus.isStagedModifiedUntrackedDone = true
 end
 
-function symbol(branch, stage, modified, unstage)
+function startStagedModifiedUntracked()
+  shell.JobStart('git status --porcelain --branch', nil, nil, stagedModifiedUntrackedDone)
+end
+
+function symbol(branch, stageModifiedUntracked)
   local symbol = ''
   if branch ~= config.GetGlobalOption('gitStatus.iconNoGit') then
-    symbol = ' ' .. config.GetGlobalOption('gitStatus.iconBranchOK')
-    if stage ~= '' or modified ~= '' or unstage ~= '' then
+    if stageModifiedUntracked ~= '' then
       symbol = ' ' .. config.GetGlobalOption('gitStatus.iconBranchNoOK')
+    else
+      symbol = ' ' .. config.GetGlobalOption('gitStatus.iconBranchOK')
     end
   end
   return symbol
 end
 
 function gitStatusToStr()
-  return 
-    currentGitStatus.branch .. 
-    currentGitStatus.conflict .. 
-    currentGitStatus.ahead .. 
-    currentGitStatus.behind .. 
-    currentGitStatus.stash .. 
-    currentGitStatus.stage .. 
-    currentGitStatus.modified .. 
-    currentGitStatus.unstage .. 
-    symbol( currentGitStatus.branch, 
-            currentGitStatus.stage, 
-            currentGitStatus.modified, 
-            currentGitStatus.unstage)
+  return  currentGitStatus.branch .. 
+          currentGitStatus.conflict .. 
+          currentGitStatus.behindAhead .. 
+          currentGitStatus.stash .. 
+          currentGitStatus.stagedModifiedUntracked ..
+          symbol( currentGitStatus.branch, 
+                  currentGitStatus.stagedModifiedUntracked)
 end
 
 function updateCurrentBufferCount()
@@ -225,6 +216,28 @@ function fulltick(doLog)
   updateCurrentBufferCount()
 end
 
+function updateLastGitStatusStrIfPossible()
+  if  currentGitStatus.isBranchDone and
+      currentGitStatus.isConflictDone and
+      currentGitStatus.isBehindAheadDone  and
+      currentGitStatus.isStashDone and
+      currentGitStatus.isStagedModifiedUntrackedDone then
+  
+    currentGitStatus.isBranchDone = false
+    currentGitStatus.isConflictDone = false
+    currentGitStatus.isBehindAheadDone  = false
+    currentGitStatus.isStashDone = false
+    currentGitStatus.isStagedModifiedUntrackedDone = false
+    currentGitStatus.populatedCounter = 0
+    
+    lastGitStatusStr = gitStatusToStr()
+    
+    -- micro.InfoBar():Message("Called")
+  else
+    -- micro.InfoBar():Message("Called 2")
+  end
+end
+
 function info(buf)
   if gitStatusTick - lastGitStatusTick < minGitStatusTick * currentBufCount then
     gitStatusTick = gitStatusTick + 1
@@ -241,43 +254,36 @@ function info(buf)
   end
   
   if gitStatusTick == 0 then
-    currentGitStatus.branch = branch()
-    currentGitStatus.conflict = conflict()
-    currentGitStatus.ahead = behind()
-    currentGitStatus.behind = ahead()
-    currentGitStatus.stash = stash()
-    currentGitStatus.stage = stage()
-    currentGitStatus.modified = modified()
-    currentGitStatus.unstage = unstage()
-    currentGitStatus.populatedCounter = 0
-    lastGitStatusStr = gitStatusToStr()
+    -- currentGitStatus.branch = branch()
+    startBranch()
+    startConflict()
+    startBehindOrAhead()
+    startStash()
+    startStagedModifiedUntracked()
+    
+    -- lastGitStatusStr = gitStatusToStr()
     -- micro.InfoBar():Message("gitStatusFirstRun")
+    currentGitStatus.populatedCounter = 3
     fulltick(true)
     return lastGitStatusStr
   end
   
   if currentGitStatus.populatedCounter == 0 then
-    currentGitStatus.branch = branch()
-    currentGitStatus.conflict = conflict()
-    currentGitStatus.behind = behind()
+    startBranch()
+    startBehindOrAhead()
+    startStash()
+    fulltick(true)
   elseif currentGitStatus.populatedCounter == 1 then
-    currentGitStatus.ahead = ahead()
-    currentGitStatus.stash = stash()
-    currentGitStatus.stage = stage()
-  else
-    currentGitStatus.modified = modified()
-    currentGitStatus.unstage = unstage()
+    startConflict()
+  elseif currentGitStatus.populatedCounter == 2 then
+    startStagedModifiedUntracked()
+    fulltick(true)
   end
   
-  currentGitStatus.populatedCounter = currentGitStatus.populatedCounter + 1
-  
-  if currentGitStatus.populatedCounter == 3 then
-    lastGitStatusStr = gitStatusToStr()
-    currentGitStatus.populatedCounter = 0
-    fulltick(false)
-    -- micro.InfoBar():Message("lastGitStatusStr = gitStatusToStr()")
+  if currentGitStatus.populatedCounter < 3 then
+    currentGitStatus.populatedCounter = currentGitStatus.populatedCounter + 1
   else
-    fulltick(true)
+    updateLastGitStatusStrIfPossible()
   end
   
   return lastGitStatusStr
@@ -297,7 +303,7 @@ function init()
   config.RegisterCommonOption('gitStatus', 'iconBranchOK', '✓')
   config.RegisterCommonOption('gitStatus', 'iconBranchNoOK', '✗')
   
-  config.RegisterCommonOption('gitStatus', 'commandInterval', 1)
+  config.RegisterCommonOption('gitStatus', 'commandInterval', 3)
 
   micro.SetStatusInfoFn('gitStatus.info')
 

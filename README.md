@@ -11,9 +11,13 @@ Information about git in status bar.
 Add this repo as a **pluginrepos** option in the **~/.config/micro/settings.json** file (it is necessary to restart the micro after this change):
 
 ```json
-  "pluginrepos": [
-    "https://codeberg.org/micro-plugins/git-status/raw/branch/main/repo.json"
-]
+    "pluginrepos": [
+        "https://raw.githubusercontent.com/Neko-Box-Coder/git-status/refs/heads/main/repo.json"
+    ]
+    //Or
+    "pluginchannels": [
+        "https://raw.githubusercontent.com/Neko-Box-Coder/unofficial-plugin-channel/main/channel.json"
+    ]
 ```
 
 ### Install
